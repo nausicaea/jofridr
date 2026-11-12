@@ -46,7 +46,7 @@ impl<T: TerminalBackend> eframe::App for Terminal<T> {
 
         egui::ScrollArea::both().show(ui, |ui| {
             ui.add_sized(ui.available_size(), |ui: &mut egui::Ui| {
-                let output = egui::TextEdit::multiline(self.term.output_buffer_mut())
+                let output = egui::TextEdit::multiline(self.term.output_buf_mut())
                     .font(egui::TextStyle::Monospace)
                     .frame(egui::Frame::NONE)
                     .code_editor()
@@ -65,11 +65,19 @@ mod tests {
     use crate::backend::terminal::tests::FakeTerminalBackend;
 
     use super::*;
-    use rstest::{fixture, rstest};
+    use egui_kittest::Harness;
+use rstest::{fixture, rstest};
 
     #[fixture]
     fn ft() -> Terminal<FakeTerminalBackend> {
         Terminal::new(FakeTerminalBackend::default())
+    }
+
+    #[fixture]
+    fn harness<'a>(ft: Terminal<FakeTerminalBackend>) -> Harness<'a, Terminal<FakeTerminalBackend>> {
+        Harness::builder()
+            .with_size(egui::vec2(300.0, 200.0))
+            .build_eframe(|_cc| ft)
     }
 
     #[rstest]
@@ -100,11 +108,7 @@ mod tests {
     }
 
     #[rstest]
-    fn terminal_ui_invokes_spawn_shell_on_first_call(ft: Terminal<FakeTerminalBackend>) {
-        let mut harness = egui_kittest::Harness::builder()
-            .with_size(egui::vec2(300.0, 200.0))
-            .build_eframe(|_cc| ft);
-
+    fn terminal_ui_invokes_spawn_shell_on_first_call(mut harness: Harness<Terminal<FakeTerminalBackend>>) {
         // This calls Terminal::ui at least once.
         eprintln!("After harness creation");
         assert!(harness.state().init);
@@ -112,10 +116,21 @@ mod tests {
         assert_eq!(0, harness.state().term.destroys);
 
         // Subsequent rendering calls.
-        eprintln!("Before first call to Terminal::ui");
+        eprintln!("Before additional calls to Terminal::ui");
         harness.run();
         harness.run();
         assert_eq!(1, harness.state().term.spawns);
         assert_eq!(0, harness.state().term.destroys);
+    }
+
+    #[rstest]
+    fn terminal_ui_invokes_output_buf_mut_on_every_call(mut harness: Harness<Terminal<FakeTerminalBackend>>) {
+        eprintln!("After harness creation");
+        assert_eq!(3, harness.state().term.output_buf_accesses);
+
+        eprintln!("Before additional calls to Terminal::ui");
+        harness.run();
+        harness.run();
+        assert_eq!(5, harness.state().term.output_buf_accesses);
     }
 }

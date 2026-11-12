@@ -1,7 +1,7 @@
 pub trait TerminalBackend {
     fn spawn_shell(&mut self);
     fn destroy_shell(&mut self);
-    fn output_buffer_mut(&mut self) -> &mut String;
+    fn output_buf_mut(&mut self) -> &mut String;
 }
 
 #[derive(Debug, Default)]
@@ -12,7 +12,7 @@ impl TerminalBackend for Terminal {
 
     fn destroy_shell(&mut self) {}
 
-    fn output_buffer_mut(&mut self) -> &mut String {
+    fn output_buf_mut(&mut self) -> &mut String {
         &mut self.0
     }
 }
@@ -25,24 +25,25 @@ pub mod tests {
     pub struct FakeTerminalBackend {
         pub spawns: usize,
         pub destroys: usize,
-        pub output_buffer_accesses: usize,
-        output_buffer: String,
+        pub output_buf_accesses: usize,
+        output_buf: String,
     }
 
     impl TerminalBackend for FakeTerminalBackend {
         fn spawn_shell(&mut self) {
-            eprintln!("Spawn called!");
+            eprintln!("FakeTerminalBackend::spawn_shell() called");
             self.spawns += 1
         }
 
         fn destroy_shell(&mut self) {
-            eprintln!("Destroy called!");
+            eprintln!("FakeTerminalBackend::destroy_shell() called");
             self.destroys += 1
         }
 
-        fn output_buffer_mut(&mut self) -> &mut String {
-            self.output_buffer_accesses += 1;
-            &mut self.output_buffer
+        fn output_buf_mut(&mut self) -> &mut String {
+            eprintln!("FakeTerminalBackend::output_buf_mut() called");
+            self.output_buf_accesses += 1;
+            &mut self.output_buf
         }
     }
 }
