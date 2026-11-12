@@ -40,7 +40,6 @@ impl<T: TerminalBackend> eframe::App for Terminal<T> {
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         if !self.init {
-            eprintln!("Init called!");
             self.init = true;
             self.term.spawn_shell();
         }
