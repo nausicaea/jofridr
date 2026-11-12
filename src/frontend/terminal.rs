@@ -1,21 +1,17 @@
 use std::sync::atomic::{AtomicU16, Ordering};
 
+use crate::backend::terminal::TerminalBackend;
+
 static INSTANCE_COUNT: AtomicU16 = AtomicU16::new(0);
 
-trait TerminalBackend {
-    fn spawn_shell(&mut self);
-    fn destroy_shell(&mut self);
-    fn output_buffer_mut(&mut self) -> &mut String;
-}
-
-struct Terminal<T> {
+pub struct Terminal<T> {
     id: egui::Id,
     term: T,
     init: bool,
 }
 
 impl<T: TerminalBackend> Terminal<T> {
-    fn new(backend: T) -> Self {
+    pub fn new(backend: T) -> Self {
         Self {
             id: egui::Id::new(format!(
                 "terminal_{}",
@@ -51,14 +47,14 @@ impl<T: TerminalBackend> eframe::App for Terminal<T> {
 
         egui::ScrollArea::both().show(ui, |ui| {
             ui.add_sized(ui.available_size(), |ui: &mut egui::Ui| {
-                let widget = egui::TextEdit::multiline(self.term.output_buffer_mut())
+                let output = egui::TextEdit::multiline(self.term.output_buffer_mut())
                     .font(egui::TextStyle::Monospace)
                     .frame(egui::Frame::NONE)
                     .code_editor()
                     .lock_focus(true)
                     .desired_width(f32::INFINITY)
-                    .id(self.id);
-                let output = widget.show(ui);
+                    .id(self.id)
+                    .show(ui);
                 output.response.response
             });
         });
@@ -67,6 +63,8 @@ impl<T: TerminalBackend> eframe::App for Terminal<T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::backend::terminal::tests::FakeTerminalBackend;
+
     use super::*;
     use rstest::{fixture, rstest};
 
@@ -120,30 +118,5 @@ mod tests {
         harness.run();
         assert_eq!(1, harness.state().term.spawns);
         assert_eq!(0, harness.state().term.destroys);
-    }
-
-    #[derive(Debug, Default, PartialEq, Eq)]
-    struct FakeTerminalBackend {
-        spawns: usize,
-        destroys: usize,
-        output_buffer_accesses: usize,
-        output_buffer: String,
-    }
-
-    impl TerminalBackend for FakeTerminalBackend {
-        fn spawn_shell(&mut self) {
-            eprintln!("Spawn called!");
-            self.spawns += 1
-        }
-
-        fn destroy_shell(&mut self) {
-            eprintln!("Destroy called!");
-            self.destroys += 1
-        }
-
-        fn output_buffer_mut(&mut self) -> &mut String {
-            self.output_buffer_accesses += 1;
-            &mut self.output_buffer
-        }
     }
 }
