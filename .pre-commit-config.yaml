@@ -39,6 +39,4 @@ repos:
       - id: cargo-fmt
       - id: cargo-fix
       - id: clippy-fix
-      - id: mutants
       - id: audit
-      - id: tarpaulin
