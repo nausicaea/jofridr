@@ -21,6 +21,8 @@ impl<T: TerminalBackend> Terminal<T> {
             init: false,
         }
     }
+
+    fn handle_input(&mut self) {}
 }
 
 impl<T: TerminalBackend> super::WindowedApp for Terminal<T> {
@@ -66,7 +68,7 @@ mod tests {
 
     use super::*;
     use egui_kittest::Harness;
-use rstest::{fixture, rstest};
+    use rstest::{fixture, rstest};
 
     #[fixture]
     fn ft() -> Terminal<FakeTerminalBackend> {
@@ -74,14 +76,16 @@ use rstest::{fixture, rstest};
     }
 
     #[fixture]
-    fn harness<'a>(ft: Terminal<FakeTerminalBackend>) -> Harness<'a, Terminal<FakeTerminalBackend>> {
+    fn harness<'a>(
+        ft: Terminal<FakeTerminalBackend>,
+    ) -> Harness<'a, Terminal<FakeTerminalBackend>> {
         Harness::builder()
             .with_size(egui::vec2(300.0, 200.0))
             .build_eframe(|_cc| ft)
     }
 
     #[rstest]
-    fn terminal_on_open_true_invokes_spawn_shell(mut ft: Terminal<FakeTerminalBackend>) {
+    fn on_open_true_invokes_spawn_shell(mut ft: Terminal<FakeTerminalBackend>) {
         use crate::frontend::WindowedApp;
 
         ft.on_open(true);
@@ -90,7 +94,7 @@ use rstest::{fixture, rstest};
     }
 
     #[rstest]
-    fn terminal_on_open_false_invokes_destroy_shell(mut ft: Terminal<FakeTerminalBackend>) {
+    fn on_open_false_invokes_destroy_shell(mut ft: Terminal<FakeTerminalBackend>) {
         use crate::frontend::WindowedApp;
 
         ft.on_open(false);
@@ -99,7 +103,7 @@ use rstest::{fixture, rstest};
     }
 
     #[rstest]
-    fn terminal_on_exit_invokes_destroy_shell(mut ft: Terminal<FakeTerminalBackend>) {
+    fn on_exit_invokes_destroy_shell(mut ft: Terminal<FakeTerminalBackend>) {
         use eframe::App;
 
         ft.on_exit();
@@ -108,29 +112,28 @@ use rstest::{fixture, rstest};
     }
 
     #[rstest]
-    fn terminal_ui_invokes_spawn_shell_on_first_call(mut harness: Harness<Terminal<FakeTerminalBackend>>) {
-        // This calls Terminal::ui at least once.
-        eprintln!("After harness creation");
-        assert!(harness.state().init);
-        assert_eq!(1, harness.state().term.spawns);
-        assert_eq!(0, harness.state().term.destroys);
-
-        // Subsequent rendering calls.
-        eprintln!("Before additional calls to Terminal::ui");
+    fn ui_invokes_spawn_shell_exactly_once(mut harness: Harness<Terminal<FakeTerminalBackend>>) {
         harness.run();
         harness.run();
         assert_eq!(1, harness.state().term.spawns);
         assert_eq!(0, harness.state().term.destroys);
     }
 
+    /// Harness creation invokes the Terminal::ui method at least once. The documentation states
+    /// that the method is invoked once, but I found that this isn't reliable. See
+    /// [`egui_kittest::Harness::new_ui`].
     #[rstest]
-    fn terminal_ui_invokes_output_buf_mut_on_every_call(mut harness: Harness<Terminal<FakeTerminalBackend>>) {
-        eprintln!("After harness creation");
-        assert_eq!(3, harness.state().term.output_buf_accesses);
+    fn ui_invokes_output_buf_mut_on_every_call(
+        mut harness: Harness<Terminal<FakeTerminalBackend>>,
+    ) {
+        let initial_frames = harness.state().term.output_buf_accesses;
 
         eprintln!("Before additional calls to Terminal::ui");
-        harness.run();
-        harness.run();
-        assert_eq!(5, harness.state().term.output_buf_accesses);
+        let mut frames: usize = harness.run() as usize;
+        frames += harness.run() as usize;
+        assert_eq!(
+            initial_frames + frames,
+            harness.state().term.output_buf_accesses
+        );
     }
 }
