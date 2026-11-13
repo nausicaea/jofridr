@@ -4384,7 +4384,7 @@ dependencies = [
  "log",
  "os_pipe",
  "rustix 1.1.6",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tree_magic_mini",
  "wayland-backend",
  "wayland-client",
