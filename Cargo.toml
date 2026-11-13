@@ -3,12 +3,17 @@ name = "jofridr"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+doc = ["dep:rstest", "dep:egui_kittest"]
+
 [dependencies]
 anyhow = "=1.0.104"
 eframe = { version = "=0.37.0", features = ["wgpu"] }
 egui = "=0.37.0"
 env_logger = "=0.11.11"
 thiserror = "=2.0.21"
+rstest = { version = "=0.26.1", optional = true }
+egui_kittest = { version = "=0.36.1", features = ["eframe"], optional = true }
 
 [dev-dependencies]
 rstest = "=0.26.1"
